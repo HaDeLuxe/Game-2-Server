@@ -10,12 +10,15 @@ namespace Game_2_Server
     public class Game1 : Game
     {
         GraphicsDeviceManager graphics;
-        SpriteBatch spriteBatch;
+        //SpriteBatch spriteBatch;
+
+
+        private Server _server;
 
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
-            Content.RootDirectory = "Content";
+            //Content.RootDirectory = "Content";
         }
 
         /// <summary>
@@ -27,7 +30,8 @@ namespace Game_2_Server
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-
+            _server = new Server();
+            _server.StartServer();
             base.Initialize();
         }
 
@@ -38,7 +42,7 @@ namespace Game_2_Server
         protected override void LoadContent()
         {
             // Create a new SpriteBatch, which can be used to draw textures.
-            spriteBatch = new SpriteBatch(GraphicsDevice);
+            //spriteBatch = new SpriteBatch(GraphicsDevice);
 
             // TODO: use this.Content to load your game content here
         }
@@ -61,6 +65,8 @@ namespace Game_2_Server
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
+
+            
 
             // TODO: Add your update logic here
 
