@@ -15,6 +15,8 @@ namespace Game_2_Server
 
         private Server _server;
 
+        private NetworkGame _networkGame = null;
+
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -31,7 +33,12 @@ namespace Game_2_Server
         {
             // TODO: Add your initialization logic here
             _server = new Server();
-            _server.StartServer();
+
+            _networkGame = new NetworkGame(_server);
+
+            _server.StartServer(_networkGame);
+
+            
             base.Initialize();
         }
 
@@ -66,10 +73,12 @@ namespace Game_2_Server
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            
+            _networkGame.Update(gameTime);
+
+            _server.checkForMessages();
 
             // TODO: Add your update logic here
-
+            
             base.Update(gameTime);
         }
 

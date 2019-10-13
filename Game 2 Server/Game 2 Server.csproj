@@ -49,6 +49,10 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Server.cs" />
+    <Compile Include="Snake\Body.cs" />
+    <Compile Include="Snake\Head.cs" />
+    <Compile Include="Snake\PlayerComponent.cs" />
+    <Compile Include="Snake\SnakeObject.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Lidgren.Network, Version=3.6.0.1625, Culture=neutral, processorArchitecture=MSIL" />

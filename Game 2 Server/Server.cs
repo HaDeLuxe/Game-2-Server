@@ -1,23 +1,30 @@
-﻿using Lidgren.Network;
+﻿using Game_2_Server.Snake;
+using Lidgren.Network;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Game_2_Server
 {
 
-    enum sendMessageType
+    enum SendMessageType
     {
         GET_NUMBER_PLAYER_IN_GAME,
-        JOINED_GAME_SUCCESS,
+        JOINED_GAME_SUCCESS_PLAYER_1,
+        JOINED_GAME_SUCCESS_PLAYER_2,
         JOINED_GAME_FAILURE,
-        DISCOVERY
+        DISCOVERY,
+        MOVE
     }
 
-
+    
+    
     class Server
     {
         #region fields
@@ -26,34 +33,44 @@ namespace Game_2_Server
 
         private NetworkGame netGame1;
 
+        #endregion
 
+        #region properties
+
+        public Dictionary<long, NetConnection> ConnectionDic { get; set; }
 
         #endregion
 
         #region methods
 
-        public void StartServer()
+        public void StartServer(NetworkGame pNetworkGame)
         {
             NetPeerConfiguration config = new NetPeerConfiguration("Game 2")
-            { Port = 12345 };
-            //config.EnableUPnP = true;
+            { Port = 8080};
+            config.EnableUPnP = true;
 
             _server = new NetServer(config);
             _server.Start();
             Console.WriteLine("Server is active");
             checkForMessages();
-
-            netGame1 = new NetworkGame();
+            
+            netGame1 = pNetworkGame;
 
             // attempt to forward port 14242
-            //_server.UPnP.ForwardPort(12345, "Text detail here");
             config.EnableMessageType(NetIncomingMessageType.DiscoveryRequest);
+            //_server.UPnP.ForwardPort(8080, "Text detail here");
+
+            ConnectionDic = new Dictionary<long, NetConnection>();
         }
+
+       
 
         public void closingServer()
         {
             _server.Shutdown("bye");
         }
+
+        
 
         public void checkForMessages()
         {
@@ -64,19 +81,40 @@ namespace Game_2_Server
                 {
                     case NetIncomingMessageType.Data:
                         //handle custom messages
-                        string data = msg.ReadString();
+                        var data = msg.ReadString();
                         switch (data)
                         {
                             case "Connect To Game":
                                 Console.WriteLine("Connect To Game");
-                                bool state = joinGame(msg.SenderConnection.RemoteUniqueIdentifier);
-                                if (state)
-                                    sendMsg(sendMessageType.JOINED_GAME_SUCCESS, msg.SenderConnection);
+                                short state = joinGame(msg.SenderConnection.RemoteUniqueIdentifier);
+                                if (state == 1)
+                                {
+                                    sendMsg(SendMessageType.JOINED_GAME_SUCCESS_PLAYER_1, msg.SenderConnection);
+                                    ConnectionDic.Add(msg.SenderConnection.RemoteUniqueIdentifier, msg.SenderConnection);
+                                }
+                                else if (state == 2)
+                                {
+                                    sendMsg(SendMessageType.JOINED_GAME_SUCCESS_PLAYER_2, msg.SenderConnection);
+                                    ConnectionDic.Add(msg.SenderConnection.RemoteUniqueIdentifier, msg.SenderConnection);
+                                }
                                 else
-                                    sendMsg(sendMessageType.JOINED_GAME_FAILURE, msg.SenderConnection);
+                                    sendMsg(SendMessageType.JOINED_GAME_FAILURE, msg.SenderConnection);
                                 break;
                             case "Get number of players in Game":
-                                sendMsg(sendMessageType.GET_NUMBER_PLAYER_IN_GAME, msg.SenderConnection);
+                                //sendMsg(SendMessageType.GET_NUMBER_PLAYER_IN_GAME, msg.SenderConnection);
+                                break;
+                            case "JOIN_SERVER":
+                                Console.WriteLine("Player " + msg.SenderConnection.RemoteUniqueIdentifier + " connected to Server.");
+                                break;
+                            case "ENTER_GAME":
+                                    netGame1.playerEnteredGameStatusChange(msg.SenderConnection.RemoteUniqueIdentifier);
+                                break;
+                            case "LEFT":
+                                netGame1.rotatePlayer(msg.SenderConnection.RemoteUniqueIdentifier,false);
+                                break;
+                            case "RIGHT":
+                                netGame1.rotatePlayer(msg.SenderConnection.RemoteUniqueIdentifier, true);
+
                                 break;
                         }
                         break;
@@ -106,18 +144,21 @@ namespace Game_2_Server
             }
         }
 
-        public void sendMsg(sendMessageType pSendMsgType, NetConnection pReceiver)
+        public void sendMsg(SendMessageType pSendMsgType, NetConnection pReceiver)
         {
             var msg = _server.CreateMessage();
             switch (pSendMsgType)
             {
-                case sendMessageType.GET_NUMBER_PLAYER_IN_GAME:
+                case SendMessageType.GET_NUMBER_PLAYER_IN_GAME:
                     msg.Write("Numbers of players in Game: " + netGame1.numberOfPlayer.ToString());
                     break;
-                case sendMessageType.JOINED_GAME_SUCCESS:
-                    msg.Write("JOINED_GAME_SUCCESS");
+                case SendMessageType.JOINED_GAME_SUCCESS_PLAYER_1:
+                    msg.Write("JOINED_GAME_SUCCESS_PLAYER_1");
                     break;
-                case sendMessageType.JOINED_GAME_FAILURE:
+                case SendMessageType.JOINED_GAME_SUCCESS_PLAYER_2:
+                    msg.Write("JOINED_GAME_SUCCESS_PLAYER_2");
+                    break;
+                case SendMessageType.JOINED_GAME_FAILURE:
                     msg.Write("JOINED_GAME_FAILURE");
                     break;
             }
@@ -125,20 +166,45 @@ namespace Game_2_Server
 
         }
 
+        
 
-        public bool joinGame(long pIdentifier)
+        /// <summary>
+        /// Server Sided Network Messages while Main Game is running
+        /// </summary>
+        /// <param name="pSendMsgType"></param>
+        /// <param name="pReceiver"></param>
+        public void SendMainGameMsg(SendMessageType pSendMsgType, NetConnection pReceiver, PlayerComponent pPlayerComponent)
+        {
+            var msg = _server.CreateMessage();
+            {
+                switch (pSendMsgType)
+                {
+                    case SendMessageType.MOVE:
+                        msg.Write("MOVE");
+                        msg.WriteVariableInt32((int)pPlayerComponent.CurrentPosition.X);
+                        msg.WriteVariableInt32((int)pPlayerComponent.CurrentPosition.Y);
+                        msg.Write(pPlayerComponent.Rotation);
+                        break;
+                   
+                }
+                _server.SendMessage(msg, pReceiver, NetDeliveryMethod.ReliableOrdered);
+            }
+        }
+
+
+        public short joinGame(long pIdentifier)
         {
             if (netGame1.Player1 == 0)
             {
                 netGame1.Player1 = pIdentifier;
-                return true;
+                return 1;
             }
             else if (netGame1.Player2 == 0 && netGame1.Player1 != pIdentifier)
             {
                 netGame1.Player2 = pIdentifier;
-                return true;
+                return 2;
             }
-            else return false;
+            else return 0;
         }
 
         #endregion
