@@ -173,7 +173,7 @@ namespace Game_2_Server
         /// </summary>
         /// <param name="pSendMsgType"></param>
         /// <param name="pReceiver"></param>
-        public void SendMainGameMsg(SendMessageType pSendMsgType, NetConnection pReceiver, PlayerComponent pPlayerComponent)
+        public void SendMainGameMsg(SendMessageType pSendMsgType, NetConnection pReceiver, PlayerComponent pPlayerComponent, PlayerComponent pEnemyComponent)
         {
             var msg = _server.CreateMessage();
             {
@@ -184,10 +184,13 @@ namespace Game_2_Server
                         msg.WriteVariableInt32((int)pPlayerComponent.CurrentPosition.X);
                         msg.WriteVariableInt32((int)pPlayerComponent.CurrentPosition.Y);
                         msg.Write(pPlayerComponent.Rotation);
+                        msg.WriteVariableInt32((int)pEnemyComponent.CurrentPosition.X);
+                        msg.WriteVariableInt32((int)pEnemyComponent.CurrentPosition.Y);
+                        msg.Write(pEnemyComponent.Rotation);
                         break;
                    
                 }
-                _server.SendMessage(msg, pReceiver, NetDeliveryMethod.ReliableOrdered);
+                _server.SendMessage(msg, pReceiver, NetDeliveryMethod.Unreliable);
             }
         }
 

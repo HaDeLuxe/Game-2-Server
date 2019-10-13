@@ -118,8 +118,8 @@ namespace Game_2_Server
             {
                 UpdatePlayers(gameTime);
                 
-                _server.SendMainGameMsg(SendMessageType.MOVE, _server.ConnectionDic[Player1], _player1List[0]);
-                _server.SendMainGameMsg(SendMessageType.MOVE, _server.ConnectionDic[Player2], _player2List[0]);
+                _server.SendMainGameMsg(SendMessageType.MOVE, _server.ConnectionDic[Player1], _player1List[0], _player2List[0]);
+                _server.SendMainGameMsg(SendMessageType.MOVE, _server.ConnectionDic[Player2], _player2List[0], _player1List[0]);
 
 
             }
