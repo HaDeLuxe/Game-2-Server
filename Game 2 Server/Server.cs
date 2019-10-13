@@ -20,7 +20,8 @@ namespace Game_2_Server
         JOINED_GAME_SUCCESS_PLAYER_2,
         JOINED_GAME_FAILURE,
         DISCOVERY,
-        MOVE
+        MOVE,
+        SCORE
     }
 
     
@@ -173,7 +174,7 @@ namespace Game_2_Server
         /// </summary>
         /// <param name="pSendMsgType"></param>
         /// <param name="pReceiver"></param>
-        public void SendMainGameMsg(SendMessageType pSendMsgType, NetConnection pReceiver, PlayerComponent pPlayerComponent, PlayerComponent pEnemyComponent)
+        public void SendMainGameMsg(SendMessageType pSendMsgType, NetConnection pReceiver, PlayerComponent pPlayerComponent, PlayerComponent pEnemyComponent, int player1Score, int player2Score)
         {
             var msg = _server.CreateMessage();
             {
@@ -187,12 +188,16 @@ namespace Game_2_Server
                         msg.WriteVariableInt32((int)pEnemyComponent.CurrentPosition.X);
                         msg.WriteVariableInt32((int)pEnemyComponent.CurrentPosition.Y);
                         msg.Write(pEnemyComponent.Rotation);
+                        msg.WriteVariableInt32(player1Score);
+                        msg.WriteVariableInt32(player2Score);
                         break;
                    
                 }
                 _server.SendMessage(msg, pReceiver, NetDeliveryMethod.Unreliable);
             }
         }
+
+        
 
 
         public short joinGame(long pIdentifier)

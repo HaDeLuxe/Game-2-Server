@@ -7,7 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.Timers;
 
 namespace Game_2_Server
 {
@@ -23,7 +23,7 @@ namespace Game_2_Server
 
         private bool _player2Ingame = false;
 
-        
+        private Timer _timer;
 
         private Server _server = null;
 
@@ -53,8 +53,11 @@ namespace Game_2_Server
                     _player2 = value;
                 }
             }
+            
         }
 
+        public int player1Score { get; set; }
+        public int player2Score { get; set; }
 
         /// <summary>
         /// True if both players are in PLAYFIELD Mode
@@ -94,6 +97,22 @@ namespace Game_2_Server
             
         }
 
+
+        private void _initTimer()
+        {
+            _timer = new Timer(1000);
+            _timer.Elapsed += Highscore;
+            _timer.AutoReset = true;
+            _timer.Enabled = true;
+        }
+
+
+        public void Highscore(Object source, ElapsedEventArgs e)
+        {
+            player1Score++;
+            player2Score++;
+        }
+
         public void InitGame()
         {
             
@@ -110,6 +129,7 @@ namespace Game_2_Server
                 {
                     GameActive = true;
                     InitGame();
+                    _initTimer();
                 }
 
             }
@@ -118,9 +138,9 @@ namespace Game_2_Server
             {
                 UpdatePlayers(gameTime);
                 
-                _server.SendMainGameMsg(SendMessageType.MOVE, _server.ConnectionDic[Player1], _player1List[0], _player2List[0]);
-                _server.SendMainGameMsg(SendMessageType.MOVE, _server.ConnectionDic[Player2], _player2List[0], _player1List[0]);
-
+                _server.SendMainGameMsg(SendMessageType.MOVE, _server.ConnectionDic[Player1], _player1List[0], _player2List[0],player1Score,player2Score);
+                _server.SendMainGameMsg(SendMessageType.MOVE, _server.ConnectionDic[Player2], _player2List[0], _player1List[0],player1Score, player2Score);
+                
 
             }
         }
